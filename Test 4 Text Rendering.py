@@ -98,11 +98,14 @@ ltLabel = GUILabel(position=(0, 0), text='LEFT TOP', font_name="Sans Serif", fon
 rtLabel = GUILabel(position=(scr_width, 0), text='RIGHT TOP', font_name="Sans Serif", font_size=32, label_color=Color.white, anchor_horizontal=Anchor.RIGHT, anchor_vertical=Anchor.TOP)
 GUICanvas.ExtendElements([ccLabel, lbLabel, rbLabel, ltLabel, rtLabel])
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-    
-    ClearScreen()
-    GUICanvas.Draw()
-    UpdateScreen()
+def main():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        
+        ClearScreen()
+        GUICanvas.Draw()
+        UpdateScreen()
+
+main()

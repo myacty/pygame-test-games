@@ -3,6 +3,8 @@ import os
 import pygame
 
 pygame.init()
+clock = pygame.time.Clock()
+clock_speed = 25 # FPS
 
 # Colors
 class Color:
@@ -20,7 +22,7 @@ def ClearScreen():
     screen.fill(Color.black)
 def UpdateScreen():
     pygame.display.update()
-    pygame.time.delay(20)
+    clock.tick(clock_speed)
 
 # Game Assets
 data_path = os.path.dirname(__file__)
@@ -129,26 +131,29 @@ class Input:
 # DEBUG
 print('Game Loaded')
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RIGHT:
-                Input.SetInput(x=1)
-            if event.key == pygame.K_LEFT:
-                Input.SetInput(x=-1) 
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
-                Input.SetInput(x=0)
-    
-    ClearScreen()
+def main():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                    Input.SetInput(x=1)
+                if event.key == pygame.K_LEFT:
+                    Input.SetInput(x=-1) 
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
+                    Input.SetInput(x=0)
+        
+        ClearScreen()
 
-    player.MoveInDirection(x=Input.x_input, y=Input.y_input, velocity=5)
-    if Input.x_input != 0:
-        player.PlayAnimation()
-        player.FlipSprite(look_left=Input.x_input < 0)
-    else:
-        player.SetDefaultSprite()
+        player.MoveInDirection(x=Input.x_input, y=Input.y_input, velocity=5)
+        if Input.x_input != 0:
+            player.PlayAnimation()
+            player.FlipSprite(look_left=Input.x_input < 0)
+        else:
+            player.SetDefaultSprite()
 
-    UpdateScreen()
+        UpdateScreen()
+
+main()
