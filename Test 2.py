@@ -1,3 +1,6 @@
+from math import fabs
+from operator import truediv
+import re
 import pygame
 
 pygame.init()
@@ -44,10 +47,26 @@ input_LMB = False
 def DrawCursor(radius: float = 16, color: tuple[int, int, int] = Color.white) -> pygame.draw:
     return pygame.draw.circle(surface=screen, color=color, center=pygame.mouse.get_pos(), radius=radius)
 
+def isCollide(targetRect: pygame.Rect, x: int, y: int) -> bool:
+    XisEntered = x >= targetRect.x and x <= targetRect.x+targetRect.width
+    YisEntered = y >= targetRect.y and y <= targetRect.y+targetRect.height
+    return XisEntered & YisEntered
+
+def TryDragPlayer():
+    cursorPosition = pygame.mouse.get_pos()
+    cursorX = cursorPosition[0]
+    cursorY = cursorPosition[1]
+    if isCollide(player_collider, cursorX, cursorY):
+        SetPosition(player_collider, cursorX-player_collider.width/2, cursorY-player_collider.height/2)
+
 # Character Movement
 input_dir = 0
 input_jump = 0
 input_shift = 1.0
+
+def SetPosition(rect: pygame.Rect, x: int, y: int):
+    rect.x = x
+    rect.y = y
 
 def Move(rect: pygame.Rect, x: int, y: int):
     rect.x += x
@@ -107,6 +126,7 @@ while True:
     DrawCursor()
 
     if input_LMB:
+        TryDragPlayer()
         DrawCursor(radius=14, color=Color.black)
 
     pygame.display.update()
