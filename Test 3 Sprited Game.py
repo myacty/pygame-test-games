@@ -20,7 +20,7 @@ def ClearScreen():
     screen.fill(Color.black)
 def UpdateScreen():
     pygame.display.update()
-    pygame.time.delay(10)
+    pygame.time.delay(20)
 
 # Game Assets
 data_path = os.path.dirname(__file__)
@@ -48,10 +48,6 @@ class Music:
 # Game Objects
 class GameObject(ABC):
     @abstractmethod
-    #name = 'New Game Object'
-    #position_x = 0
-    #position_y = 0
-
     def __init__(self, name: str, position: tuple[int, int]) -> None:
         self.SetName(name)
         self.SetPosition(position[0], position[1])
@@ -67,13 +63,12 @@ class GameObject(ABC):
     def MoveInDirection(self, x: int, y: int, velocity: float = 1.0):
         self.SetPosition(self.position_x + (x * velocity), self.position_y + (y * velocity))
     
-    def OnPositionChanged():
-        pass
+    def OnPositionChanged(): pass
 
 class SpritedGameObject(GameObject):
     scale = 1.0
     sprite_pack = []
-    sprite = LoadSprite('\Player_0.svg')
+    sprite = LoadSprite('\\None.svg')
     collider = pygame.Rect(0, 0, 0, 0)
 
     def __init__(self, name: str, position: tuple[int, int], sprite_pack: set[str], scale: float) -> None:
@@ -88,11 +83,14 @@ class SpritedGameObject(GameObject):
     def LoadSpritePack(self, sprite_pack: list):
         for i in sprite_pack:
             self.sprite_pack.append(LoadSprite(i))
-        self.SetSprite(self.sprite_pack[0])
-        pass
+        self.SetDefaultSprite()
     
+    def SetDefaultSprite(self):
+        self.SetSprite(self.sprite_pack[0])
+
     def SetSprite(self, sprite: pygame.image):
         self.sprite = pygame.transform.scale(sprite, (sprite.get_width() * self.scale, sprite.get_height() * self.scale))
+        self.sprite = pygame.transform.flip(self.sprite, flip_x=self.is_looking_left, flip_y=False)
 
     def SetCollider(self):
         self.collider = pygame.Rect(self.position_x, self.position_y, self.sprite.get_width(), self.sprite.get_height())
@@ -100,20 +98,26 @@ class SpritedGameObject(GameObject):
     def Draw(self):
         screen.blit(self.sprite, self.collider)
     
-    frame = 0
+    frame = 1
     def PlayAnimation(self):
         self.SetSprite(self.sprite_pack[self.frame])
         self.frame += 1
-        #if self.frame >= self.sprite_pack.
+        if self.frame >= self.sprite_pack.__len__():
+            self.frame = 0
+
+    is_looking_left = False
+    def FlipSprite(self, look_left: bool):
+        self.is_looking_left = look_left
 
     def OnPositionChanged(self):
         self.SetCollider()
         self.Draw()
 
-player_spawn_point = (250, 0)
+player_spawn_point = (scr_width/2, scr_height * 0.8)
 player_scale = 0.5
 player = SpritedGameObject('Player', player_spawn_point, ['\Player_0.svg', '\Player_1.svg', '\Player_2.svg'], player_scale)
 
+# Input System
 class Input:
     x_input = 0
     y_input = 0
@@ -121,6 +125,9 @@ class Input:
     def SetInput(x: int = x_input, y: int = y_input):
         Input.x_input = x
         Input.y_input = y
+
+# DEBUG
+print('Game Loaded')
 
 while True:
     for event in pygame.event.get():
@@ -138,5 +145,10 @@ while True:
     ClearScreen()
 
     player.MoveInDirection(x=Input.x_input, y=Input.y_input, velocity=5)
-    
+    if Input.x_input != 0:
+        player.PlayAnimation()
+        player.FlipSprite(look_left=Input.x_input < 0)
+    else:
+        player.SetDefaultSprite()
+
     UpdateScreen()
