@@ -1,3 +1,4 @@
+import os
 import pygame
 
 pygame.init()
@@ -10,19 +11,23 @@ class Color:
     blue = (0, 0, 255)
     black = (0, 0, 0)
 
-# SFX & Music
-class Sounds:
-    PopSound = pygame.mixer.Sound('F:\Development Folder\Python\PyGame\pygame-test-games\Pop.wav')
-#Sounds.PopSound.play()
-
-class Music:
-    MainTheme = pygame.mixer.music.load('F:\Development Folder\Python\PyGame\pygame-test-games\Pop.wav')
-#pygame.mixer.music.play()
-
 # Game Screen
 scr_width = 960
 scr_height = 540
 screen = pygame.display.set_mode(size=(scr_width, scr_height))
+
+# Game Assets
+data_path = os.path.dirname(__file__)
+sounds_data_path = os.path.dirname(__file__) + '\Sounds'
+
+# SFX & Music
+class Sounds:
+    PopSound = pygame.mixer.Sound(sounds_data_path + '\Pop.wav')
+#Sounds.PopSound.play()
+
+class Music:
+    MainTheme = pygame.mixer.music.load(sounds_data_path + '\Pop.wav')
+#pygame.mixer.music.play()
 
 while True:
     for event in pygame.event.get():

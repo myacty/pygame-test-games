@@ -1,6 +1,4 @@
-from math import fabs
-from operator import truediv
-import re
+import os
 import pygame
 
 pygame.init()
@@ -13,23 +11,30 @@ class Color:
     blue = (0, 0, 255)
     black = (0, 0, 0)
 
-# SFX & Music
-class Sounds:
-    PopSound = pygame.mixer.Sound('F:\Development Folder\Python\PyGame\pygame-test-games\Pop.wav')
-#Sounds.PopSound.play()
-
-class Music:
-    MainTheme = pygame.mixer.music.load('F:\Development Folder\Python\PyGame\pygame-test-games\Pop.wav')
-#pygame.mixer.music.play()
-
 # Game Screen
 scr_width = 960
 scr_height = 540
 screen = pygame.display.set_mode(size=(scr_width, scr_height))
-def RefreshScreen():
+def ClearScreen():
     screen.fill(Color.black)
+def UpdateScreen():
+    pygame.display.update()
+    pygame.time.delay(10)
 
 # Game Assets
+data_path = os.path.dirname(__file__)
+sounds_data_path = os.path.dirname(__file__) + '\Sounds'
+
+# SFX & Music
+class Sounds:
+    PopSound = pygame.mixer.Sound(sounds_data_path + '\Pop.wav')
+#Sounds.PopSound.play()
+
+class Music:
+    MainTheme = pygame.mixer.music.load(sounds_data_path + '\Pop.wav')
+#pygame.mixer.music.play()
+
+# Player Settings
 player_sprite = pygame.Surface((10, 40))
 player_sprite.fill(Color.white)
 player_collider = pygame.Rect(scr_width/2-player_sprite.get_width()/2, scr_height/2-player_sprite.get_height()/2, player_sprite.get_width(), player_sprite.get_height())
@@ -87,8 +92,6 @@ def ApplyGravityTo(rect: pygame.Rect):
         Move(rect, 0, 1)
 
 while True:
-    RefreshScreen()
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -116,6 +119,8 @@ while True:
                 input_dir = 0
             if event.key == pygame.K_UP:
                 input_jump = 0
+    
+    ClearScreen()
 
     ApplyMovementTo(player_collider, input_dir, input_shift)
     ApplyJumpTo(player_collider, input_jump)
@@ -129,5 +134,4 @@ while True:
         TryDragPlayer()
         DrawCursor(radius=14, color=Color.black)
 
-    pygame.display.update()
-    pygame.time.delay(10)
+    UpdateScreen()
