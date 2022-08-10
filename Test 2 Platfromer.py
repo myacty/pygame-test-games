@@ -1,6 +1,9 @@
 import os
 import pygame
 
+import COLORS as Color
+import GUI
+
 pygame.init()
 
 # Colors

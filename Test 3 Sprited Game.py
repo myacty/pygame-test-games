@@ -2,17 +2,12 @@ from abc import ABC, abstractmethod
 import os
 import pygame
 
+import COLORS as Color
+import GUI
+
 pygame.init()
 clock = pygame.time.Clock()
 clock_speed = 25 # FPS
-
-# Colors
-class Color:
-    white = (255, 255, 255)
-    red = (255, 0, 0)
-    green = (0, 255, 0)
-    blue = (0, 0, 255)
-    black = (0, 0, 0)
 
 # Game Screen
 scr_width = 960
