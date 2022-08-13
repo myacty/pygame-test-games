@@ -1,3 +1,4 @@
+from cmath import e
 from enum import Enum
 import os
 import pygame
@@ -5,8 +6,12 @@ from random import randint
 
 import COLORS as Color
 from GUI import Anchor
+from GUI import GUIRect
 from GUI import GUILabel
+from GUI import GUIButton
 from GUI import GUICanvas
+
+# ? Duck-Hunt-Style game.
 
 # Some Math Shit
 def clamp(num, min_value, max_value):
@@ -51,6 +56,7 @@ def LoadMusic(name: str) -> pygame.mixer.Sound:
 def LoadSprite(name: str) -> pygame.image:
     return pygame.image.load(sprites_data_path + name)
 
+# ? Move MouseCursor to GUI (or another special component)
 # Game Cursor
 class MouseCursor:
     input_LMB = False
@@ -93,6 +99,11 @@ class UIScreen(Enum):
 class UI:
     canvas = GUICanvas()
 
+    menu_label = GUILabel(position=(scr_width/2, scr_height/3), text='GIGA HUNT GAME 2022.', font_name="Sans Serif", font_size=64, label_color=Color.white, anchor_horizontal=Anchor.CENTER, anchor_vertical=Anchor.CENTER)
+    menu_casual_btn = GUIButton(GUIRect(position=(scr_width/2, scr_height/3+96), width=32, height=32), GUILabel((0,0), 'CASUAL', font_name="Sans Serif", font_size=64, label_color=Color.black))
+    menu_normal_btn = GUIButton(GUIRect(position=(scr_width/2, scr_height/3+96+96), width=32, height=32), GUILabel((0,0), 'NORMAL', font_name="Sans Serif", font_size=64, label_color=Color.black))
+    menu_hard_btn = GUIButton(GUIRect(position=(scr_width/2, scr_height/3+96+96+96), width=32, height=32), GUILabel((0,0), 'HARD', font_name="Sans Serif", font_size=64, label_color=Color.black))
+    
     game_run_timer_label = GUILabel(position=(scr_width/2, 0), text='TIME REMAINING:', font_name="Sans Serif", font_size=32, label_color=Color.white, anchor_horizontal=Anchor.CENTER, anchor_vertical=Anchor.TOP)
     game_run_score_label = GUILabel(position=(scr_width, scr_height), text='KILLS:', font_name="Sans Serif", font_size=32, label_color=Color.white, anchor_horizontal=Anchor.RIGHT, anchor_vertical=Anchor.BOTTOM)
     game_run_ammo_label = GUILabel(position=(0, scr_height), text='AMMO:', font_name="Sans Serif", font_size=32, label_color=Color.white, anchor_horizontal=Anchor.LEFT, anchor_vertical=Anchor.BOTTOM)
@@ -110,14 +121,31 @@ class UI:
         self.canvas.Clear()
         self.current_screen = screen_type
         match screen_type:
+            case UIScreen.MAIN_MENU:
+                self.canvas.ExtendElements([self.menu_label, self.menu_casual_btn, self.menu_normal_btn, self.menu_hard_btn])
             case UIScreen.GAME_RUN:
                 self.canvas.ExtendElements([self.game_run_timer_label, self.game_run_score_label, self.game_run_ammo_label])
             case UIScreen.GAME_END:
                 self.canvas.ExtendElements([self.game_end_label, self.game_end_status_label, self.game_end_score_label])
     
+    # Cursor Colliding
+    def _CursorIsColliding(self, gui_rect: GUIRect) -> bool:
+        return gui_rect.rect.collidepoint(MouseCursor.GetMousePos())
+    def _CursorIsClicking(self, gui_rect: GUIRect) -> bool:
+        return MouseCursor.input_LMB and self._CursorIsColliding(gui_rect)
+    def _UpdateCursorClick(self, gui_rect: GUIRect, on_click_method, args):
+        if self._CursorIsClicking(gui_rect):
+            gui_rect.OnClick(on_click_method, args)
+        else:
+            gui_rect.OnClickOver()
+
     # Update Methods
     def Update(self):
         match self.current_screen:
+            case UIScreen.MAIN_MENU:
+                self._UpdateCursorClick(self.menu_casual_btn.rect, on_click_method=game_observer.GameStart, args=(GameMode.CASUAL))
+                self._UpdateCursorClick(self.menu_normal_btn.rect, on_click_method=game_observer.GameStart, args=(GameMode.NORMAL))
+                self._UpdateCursorClick(self.menu_hard_btn.rect, on_click_method=game_observer.GameStart, args=(GameMode.HARDCORE))
             case UIScreen.GAME_RUN:
                 self.game_run_timer_label.SetLabel(f'TIME REMAINING: {player.time_remaining}')
                 self.game_run_score_label.SetLabel(f'KILLS: {player.score}')
@@ -214,35 +242,39 @@ class SpritedGameObject(GameObject):
 
 # Victim Game Object Behaviour
 class Victim(SpritedGameObject):
-    current_point_id = 0
-    current_movement_point: GameObject = GameObject
-    preloaded_movement_points: GameObject = []
+    _current_point_id = 0
+    _current_movement_point: GameObject = GameObject
+    _preloaded_movement_points: GameObject = []
 
-    dir_x = 0
-    dir_y = 0
+    _dir_x = 0
+    _dir_y = 0
 
-    movement_speed = 200 # Pixels Per Second
+    _movement_speed = 200 # Pixels Per Second
 
-    at_gunpoint = False
-    is_dead = False
+    _at_gunpoint = False
+    _is_dead = False
+
+    @property
+    def is_dead(self):
+        return self._is_dead
 
     def __init__(self, name: str, position: tuple[int, int], sprite_pack: set[str], scale: float) -> None:
         super().__init__(name, position, sprite_pack, scale)
     
     # Path Creating
     def HasNoMovementPoints(self) -> bool:
-        return self.preloaded_movement_points.__len__() < 1   
+        return self._preloaded_movement_points.__len__() < 1   
     def SetMovementPoints(self, points: list[GameObject]):
-        self.preloaded_movement_points = points
+        self._preloaded_movement_points = points
         self.SetNextMovementPoint(random=self.HasNoMovementPoints())  
     def SetNextMovementPoint(self, random: bool = False):
         if random or self.HasNoMovementPoints():
-            self.current_movement_point = self.GetRandomMovementPoint()
+            self._current_movement_point = self.GetRandomMovementPoint()
         else:
-            self.current_point_id += 1
-            if (self.current_point_id >= self.preloaded_movement_points.__len__()):
-                self.current_point_id = 0
-            self.current_movement_point = self.preloaded_movement_points[self.current_point_id]    
+            self._current_point_id += 1
+            if (self._current_point_id >= self._preloaded_movement_points.__len__()):
+                self._current_point_id = 0
+            self._current_movement_point = self._preloaded_movement_points[self._current_point_id]    
     def GetRandomMovementPoint(self) -> GameObject:
         rand_x = randint(0, scr_width-self.sprite.get_width())
         rand_y = randint(0, scr_height-self.sprite.get_height())
@@ -256,11 +288,11 @@ class Victim(SpritedGameObject):
         point_pos = (movement_point.position_x, movement_point.position_y)
         return sqr_magnitude(self_pos, point_pos) < 64
     def MoveToCurrentPoint(self):
-        direction = self.GetDirectionToPoint(self.current_movement_point)
-        self.dir_x = direction[0]
-        self.dir_y = direction[1]
-        self.MoveInDirection(self.dir_x, self.dir_y, velocity=self.movement_speed)
-        if self.PointIsReached(self.current_movement_point):
+        direction = self.GetDirectionToPoint(self._current_movement_point)
+        self._dir_x = direction[0]
+        self._dir_y = direction[1]
+        self.MoveInDirection(self._dir_x, self._dir_y, velocity=self._movement_speed)
+        if self.PointIsReached(self._current_movement_point):
             self.SetNextMovementPoint()
 
     # Cursor Colliding
@@ -268,20 +300,20 @@ class Victim(SpritedGameObject):
         return self.collider.collidepoint(MouseCursor.GetMousePos())
     # ? Don't like this updating method
     def UpdateCursorColliding(self):
-        if self.at_gunpoint and not self.CursorIsColliding():
+        if self._at_gunpoint and not self.CursorIsColliding():
             MouseCursor.OnHover(False)
-        self.at_gunpoint = self.CursorIsColliding()
-        if self.at_gunpoint:
+        self._at_gunpoint = self.CursorIsColliding()
+        if self._at_gunpoint:
             MouseCursor.OnHover(True)
             self.SetNextMovementPoint(random=True)
-    # ? It's better to subscribe on MouseCursor.OnClick method -> if self.at_gunpoint: kill(). But idk how for now.
+    # ? It's better to subscribe on MouseCursor.OnClick method -> if self._at_gunpoint: kill(). But idk how for now.
     def UpdateCursorClick(self):
-        if player.is_shooting and self.at_gunpoint:
+        if player.is_shooting and self._at_gunpoint:
             self.Kill()
 
     # Lifecycle End
     def Kill(self):
-        self.is_dead = True      
+        self._is_dead = True      
         self.OnKill()
 
     def OnKill(self):
@@ -290,21 +322,33 @@ class Victim(SpritedGameObject):
 
     # Update Methods
     def PhysicsUpdate(self):
-        self.MoveToCurrentPoint()
-        self.UpdateCursorColliding()
-        self.UpdateCursorClick()
+        if not self._is_dead:
+            self.MoveToCurrentPoint()
+            self.UpdateCursorColliding()
+            self.UpdateCursorClick()
     
     def RenderingUpdate(self):
-        self.FlipSprite(look_left=self.dir_x < 0)
-        self.Draw()
-        if self.dir_x != 0 or self.dir_y != 0:
-            self.PlayAnimation()
-        else:
-            self.SetDefaultSprite()
+        if not self._is_dead:
+            self.FlipSprite(look_left=self._dir_x < 0)
+            self.Draw()
+            if self._dir_x != 0 or self._dir_y != 0:
+                self.PlayAnimation()
+            else:
+                self.SetDefaultSprite()
 
 # Game God and each frame updating Objects.
 # ? Still don't know how to make Event System here.
+class GameMode(Enum):
+    CASUAL = 1,
+    NORMAL = 2,
+    HARDCORE = 3
+
 class GameObserver():
+    _game_mode = GameMode.NORMAL
+
+    @property
+    def game_started(self):
+        return self._game_started
 
     @property
     def game_is_over(self):
@@ -315,8 +359,37 @@ class GameObserver():
         return self._game_over_status
     
     def __init__(self) -> None:
+        self._SetToDefault()
+
+    def _SetToDefault(self):
+        self._game_started = False
         self._game_is_over = False
-        self._game_over_status = "Time's up!"
+        self._game_over_status = ""        
+
+    def GameStart(self, game_mode: GameMode):
+        gameUI.EnableScreen(screen_type=UIScreen.GAME_RUN)
+        match game_mode:
+            case GameMode.CASUAL:
+                player.__init__(ammo=60, timer=60)
+                main_victim_group.__init__(victim_count=15)
+            case GameMode.NORMAL:
+                player.__init__(ammo=30, timer=30)
+                main_victim_group.__init__(victim_count=20)
+            case GameMode.HARDCORE:
+                player.__init__(ammo=25, timer=15)
+                main_victim_group.__init__(victim_count=25)     
+        self._game_mode = game_mode
+        self._game_started = True
+
+    def BackToMenu(self):
+        self._SetToDefault()
+        player.Stop()
+        main_victim_group.ClearAll()
+        gameUI.EnableScreen(UIScreen.MAIN_MENU)
+
+    def Restart(self):
+        self._SetToDefault()
+        self.GameStart(self._game_mode)
 
     def GameOver(self, status: str):
         self._game_is_over = True
@@ -326,12 +399,10 @@ class GameObserver():
     def OnGameOver(self):
         player.Stop()
         gameUI.EnableScreen(UIScreen.GAME_END)
-    
-    # TODO: Restart after GameOver on R-key Down
 
     # Update Methods
     def Update(self):
-        if not self._game_is_over:
+        if self._game_started and not self._game_is_over:
             if player.TimeIsOut:
                 self.GameOver("Time's up, baby!")
             elif player.HasKilledAll:
@@ -416,9 +487,10 @@ class VictimGroup():
         self.Create(victim_count)
 
     def Create(self, victim_count: int):
+        self.ClearAll()
         for i in range(0, victim_count):
             self.Add(f'Giga_{i}')
-
+    
     # Collection Methods
     def Add(self, name: str, start_pos: tuple[int, int] = (scr_width/2, scr_height/2), scale: float = 0.5):
         new_victim = Victim(name, start_pos, ['\Player_0.svg', '\Player_1.svg', '\Player_2.svg'], scale)
@@ -428,10 +500,15 @@ class VictimGroup():
         self.victims.remove(obj)
         del obj
     def ClearAll(self):
-        for victim in self.victims:
-            self.Remove(victim) 
+        self.victims = []
 
-    # Choosing a random preloaded movement path
+    # TODO: RANDOM START POS
+    # Generating a random spawn point
+    def GetRandomSpawnPoint(self, victim: Victim) -> tuple[int, int]:
+        rand_x = randint(0, scr_width-self.sprite.get_width())
+        rand_y = randint(0, scr_height-self.sprite.get_height())
+        return [rand_x, rand_y]
+    # Choosing a random or preloaded movement path
     def GetMovementPoints(self) -> list[GameObject]:
         i = randint(0, 20)
         if i < 2:
@@ -454,10 +531,11 @@ class VictimGroup():
 
 # Physics Queue
 def PhysicsUpdate():
-    main_victim_group.PhysicsUpdate()
-    player.PhysicsUpdate()
-    gameUI.Update()
     game_observer.Update()
+    gameUI.Update()
+    if game_observer.game_started:
+        main_victim_group.PhysicsUpdate()
+        player.PhysicsUpdate()
 
 # Rendering Queue
 def RenderingUpdate():
@@ -466,10 +544,10 @@ def RenderingUpdate():
     gameUI.RenderingUpdate()
 
 # Main Game-loop
-gameUI = UI(screen_type=UIScreen.GAME_RUN)
-player = Player(ammo=30, timer=15)
-main_victim_group = VictimGroup(victim_count=15)
 game_observer = GameObserver()
+gameUI = UI(screen_type=UIScreen.MAIN_MENU)
+player = Player(ammo=0, timer=60)
+main_victim_group = VictimGroup(victim_count=0)
 
 def main(run: bool):
     while run:
@@ -480,6 +558,11 @@ def main(run: bool):
                 MouseCursor.OnClick(down=event.button == 1)
             if event.type == pygame.MOUSEBUTTONUP:
                 MouseCursor.OnClick(down=not event.button == 1)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r and game_observer.game_started:
+                    game_observer.Restart()
+                if event.key == pygame.K_ESCAPE:
+                    game_observer.BackToMenu()
         
         ClearScreen()
         
