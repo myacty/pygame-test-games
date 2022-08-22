@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from mimetypes import init
-import re
 import pygame
 
 import COLORS as Color

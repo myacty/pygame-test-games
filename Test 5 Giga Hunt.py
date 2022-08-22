@@ -33,9 +33,11 @@ class Time:
         return Time.delta_time * 0.001
 
 # Game Screen
+display = pygame.display
+display.set_caption('Giga Hunt Game 2022')
 scr_width = 960
 scr_height = 540
-screen = pygame.display.set_mode(size=(scr_width, scr_height))
+screen = display.set_mode(size=(scr_width, scr_height))
 def ClearScreen():
     screen.fill(Color.black)
 def UpdateScreen():
@@ -72,17 +74,17 @@ class MouseCursor:
         MouseCursor.input_hover = on
 
     def DrawNormalState():
-        MouseCursor.DrawCircle(radius=16, color=Color.white)
+        MouseCursor.__DrawCircle(radius=16, color=Color.white)
     
     def DrawClickedState():
         if MouseCursor.input_LMB or not player.HasAmmo:
-            MouseCursor.DrawCircle(radius=14, color=Color.black)  
+            MouseCursor.__DrawCircle(radius=14, color=Color.black)  
     
     def DrawHoverState():
         if MouseCursor.input_hover:
-            MouseCursor.DrawCircle(radius=8, color=Color.red)
+            MouseCursor.__DrawCircle(radius=8, color=Color.red)
     
-    def DrawCircle(radius: float, color: Color = Color.white):
+    def __DrawCircle(radius: float, color: Color = Color.white):
         pygame.draw.circle(surface=screen, color=color, center=pygame.mouse.get_pos(), radius=radius) 
     
     def Draw():
@@ -489,7 +491,7 @@ class VictimGroup():
     def Create(self, victim_count: int):
         self.ClearAll()
         for i in range(0, victim_count):
-            self.Add(f'Giga_{i}')
+            self.Add(f'Giga_{i}', self.GetRandomSpawnPoint())
     
     # Collection Methods
     def Add(self, name: str, start_pos: tuple[int, int] = (scr_width/2, scr_height/2), scale: float = 0.5):
@@ -501,12 +503,11 @@ class VictimGroup():
         del obj
     def ClearAll(self):
         self.victims = []
-
-    # TODO: RANDOM START POS
+    
     # Generating a random spawn point
-    def GetRandomSpawnPoint(self, victim: Victim) -> tuple[int, int]:
-        rand_x = randint(0, scr_width-self.sprite.get_width())
-        rand_y = randint(0, scr_height-self.sprite.get_height())
+    def GetRandomSpawnPoint(self) -> tuple[int, int]:
+        rand_x = randint(0, scr_width)
+        rand_y = randint(0, scr_height)
         return [rand_x, rand_y]
     # Choosing a random or preloaded movement path
     def GetMovementPoints(self) -> list[GameObject]:
